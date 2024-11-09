@@ -9,13 +9,15 @@ public class Stocks {
     private final LinkedHashMap<Product, Stock> productsStock = new LinkedHashMap<>();
     private final LinkedHashMap<Product, Pair<Promotion, Stock>> promotionProductsStock = new LinkedHashMap<>();
 
-    public Stocks(LinkedHashMap<String, Promotion> promotionMap) throws IOException {
+    public Stocks() throws IOException {
+        PromotionInitializer promotionInitializer = new PromotionInitializer();
+        promotionInitializer.initPromotions();
+
         ProductInitializer productInitializer = new ProductInitializer(
                 productsStock,
                 promotionProductsStock,
-                promotionMap
+                promotionInitializer.getPromotionMap()
         );
-
         productInitializer.initProducts();
     }
 }
