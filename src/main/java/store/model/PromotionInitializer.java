@@ -7,8 +7,9 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.time.LocalDate;
 import java.util.Arrays;
-import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.LinkedHashMap;
 import java.util.Objects;
 
 public class PromotionInitializer {
@@ -23,48 +24,51 @@ public class PromotionInitializer {
     private static final int START_DATE_INDEX = 3;
     private static final int END_DATE_INDEX = 4;
 
-    private final LinkedHashMap<String, Promotion> promotionMap = new LinkedHashMap<>();
+    private final Map<String, Promotion> promotionMap = new LinkedHashMap<>();
 
-    public void initPromotions() throws IOException {
+    public PromotionInitializer() throws IOException {
+        initPromotions();
+    }
+
+    private void initPromotions() throws IOException {
         BufferedReader bufferedReader = initBufferedReader();
         ignoreFirstLine(bufferedReader);
 
         String line;
         while ((line = bufferedReader.readLine()) != null) {
-            initPromotion(line);
+            createPromotion(line);
         }
     }
 
     private static BufferedReader initBufferedReader() throws IOException {
-        BufferedReader bufferedReader;
         try {
             ClassLoader loader = Stock.class.getClassLoader();
             FileInputStream file = new FileInputStream(
                     Objects.requireNonNull(loader.getResource(PROMOTIONS_RESOURCES_FILE_NAME)).getFile());
-            bufferedReader = new BufferedReader(new InputStreamReader(file));
+            return new BufferedReader(new InputStreamReader(file));
         } catch (FileNotFoundException e) {
             throw new FileNotFoundException(ERROR_FILE_NOT_FOUND_MESSAGE);
         }
-        return bufferedReader;
     }
 
     private void ignoreFirstLine(BufferedReader bufferedReader) throws IOException {
         bufferedReader.readLine();
     }
 
-    private void initPromotion(String line) {
-        List<String> promotionOptions = Arrays.stream(line.split(DELIMITER_COMMA)).toList();
-
-        String name = promotionOptions.get(NAME_INDEX);
-        int buyCount = Integer.parseInt(promotionOptions.get(BUY_COUNT_INDEX));
-        int getCount = Integer.parseInt(promotionOptions.get(GET_COUNT_INDEX));
-        LocalDate startDate = LocalDate.parse(promotionOptions.get(START_DATE_INDEX));
-        LocalDate endDate = LocalDate.parse(promotionOptions.get(END_DATE_INDEX));
-
-        promotionMap.put(name, new Promotion(name, buyCount, getCount, startDate, endDate));
+    private void createPromotion(String line) {
+        List<String> options = Arrays.stream(line.split(DELIMITER_COMMA)).toList();
+        String name = options.get(NAME_INDEX);
+        Promotion promotion = new Promotion(
+                name,
+                Integer.parseInt(options.get(BUY_COUNT_INDEX)),
+                Integer.parseInt(options.get(GET_COUNT_INDEX)),
+                LocalDate.parse(options.get(START_DATE_INDEX)),
+                LocalDate.parse(options.get(END_DATE_INDEX))
+        );
+        promotionMap.put(name, promotion);
     }
 
-    public LinkedHashMap<String, Promotion> getPromotionMap() {
-        return promotionMap;
+    public Map<String, Promotion> getPromotionMap() {
+        return new LinkedHashMap<>(promotionMap);
     }
 }

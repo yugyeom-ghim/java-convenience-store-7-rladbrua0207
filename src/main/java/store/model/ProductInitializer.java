@@ -8,8 +8,8 @@ import java.io.InputStreamReader;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
-import org.graalvm.collections.Pair;
 
 public class ProductInitializer {
 
@@ -22,66 +22,70 @@ public class ProductInitializer {
     private static final int QUANTITY_INDEX = 2;
     private static final int PROMOTION_INDEX = 3;
 
-    private final LinkedHashMap<Product, Stock> productsStock;
-    private final LinkedHashMap<Product, Pair<Promotion, Stock>> promotionProductsStock;
-    private final LinkedHashMap<String, Promotion> promotionMap;
+    private final Map<Product, Stock> stocks = new LinkedHashMap<>();
+    private final Map<Product, PromotionStock> promotionStocks = new LinkedHashMap<>();
+    private final Map<String, Promotion> promotionMap;
 
     public ProductInitializer(
-            LinkedHashMap<Product, Stock> productsStock,
-            LinkedHashMap<Product, Pair<Promotion, Stock>> promotionProductsStock,
-            LinkedHashMap<String, Promotion> promotionMap
-    ) {
-        this.productsStock = productsStock;
-        this.promotionProductsStock = promotionProductsStock;
+            Map<String, Promotion> promotionMap
+    ) throws IOException {
         this.promotionMap = promotionMap;
+        initProducts();
     }
 
-    public void initProducts() throws IOException {
+    private void initProducts() throws IOException {
         BufferedReader bufferedReader = initBufferedReader();
         ignoreFirstLine(bufferedReader);
 
         String line;
         while ((line = bufferedReader.readLine()) != null) {
-            initProduct(line);
+            createProduct(line);
         }
     }
 
     private static BufferedReader initBufferedReader() throws IOException {
-        BufferedReader bufferedReader;
         try {
             ClassLoader loader = Stock.class.getClassLoader();
             FileInputStream file = new FileInputStream(
                     Objects.requireNonNull(loader.getResource(PRODUCTS_RESOURCES_FILE_NAME)).getFile());
-            bufferedReader = new BufferedReader(new InputStreamReader(file));
+            return new BufferedReader(new InputStreamReader(file));
         } catch (FileNotFoundException e) {
             throw new FileNotFoundException(ERROR_FILE_NOT_FOUND_MESSAGE);
         }
-        return bufferedReader;
     }
 
     private void ignoreFirstLine(BufferedReader bufferedReader) throws IOException {
         bufferedReader.readLine();
     }
 
-    private void initProduct(String line) {
-        List<String> productOptions = Arrays.stream(line.split(DELIMITER_COMMA)).toList();
-
-        String name = productOptions.get(NAME_INDEX);
-        int price = Integer.parseInt(productOptions.get(PRICE_INDEX));
-        int quantity = Integer.parseInt(productOptions.get(QUANTITY_INDEX));
-        Promotion promotion = promotionMap.get(productOptions.get(PROMOTION_INDEX));
-
-        loadStock(new Product(name, price), new Stock(quantity), promotion);
+    private void createProduct(String line) {
+        List<String> options = Arrays.stream(line.split(DELIMITER_COMMA)).toList();
+        Product product = new Product(
+                options.get(NAME_INDEX),
+                Integer.parseInt(options.get(PRICE_INDEX))
+        );
+        
+        int quantity = Integer.parseInt(options.get(QUANTITY_INDEX));
+        Promotion promotion = promotionMap.get(options.get(PROMOTION_INDEX));
+        addToStock(product, quantity, promotion);
     }
 
-    private void loadStock(Product product, Stock stock, Promotion promotion) {
+    private void addToStock(Product product, int quantity, Promotion promotion) {
         if (promotion == null) {
-            productsStock.put(product, stock);
+            stocks.put(product, new Stock(product, quantity));
+            return;
         }
+        promotionStocks.put(
+                product, 
+                new PromotionStock(product, quantity, promotion)
+        );
+    }
 
-        if (promotion != null) {
-            Pair<Promotion, Stock> promotionQuantity = Pair.create(promotion, stock);
-            promotionProductsStock.put(product, promotionQuantity);
-        }
+    public Map<Product, Stock> getStocks() {
+        return new LinkedHashMap<>(stocks);
+    }
+
+    public Map<Product, PromotionStock> getPromotionStocks() {
+        return new LinkedHashMap<>(promotionStocks);
     }
 }

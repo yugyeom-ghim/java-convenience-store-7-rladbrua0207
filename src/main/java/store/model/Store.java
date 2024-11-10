@@ -16,28 +16,16 @@ public class Store {
     private final Map<Product, Stock> stocks = new LinkedHashMap<>();
     private final Map<Product, PromotionStock> promotionStocks = new LinkedHashMap<>();
 
-    public Store() throws IOException {
-        PromotionInitializer promotionInitializer = new PromotionInitializer();
-        promotionInitializer.initPromotions();
-
-        ProductInitializer productInitializer = new ProductInitializer(
-                stocks,
-                promotionStocks,
-                promotionInitializer.getPromotionMap()
-        );
-        productInitializer.initProducts();
+    public Store(Map<Product, Stock> stocks, Map<Product, PromotionStock> promotionStocks) throws IOException {
+        this.stocks.putAll(stocks);
+        this.promotionStocks.putAll(promotionStocks);
     }
 
     public void validatePurchase(Order order) {
-        validateProduct(order.getProductName());
+        findProduct(order.getProductName());
         validateStock(order);
     }
 
-    private void validateProduct(String productName) {
-        if (!hasProduct(productName)) {
-            throw new NotFoundException(ERROR_NOTFOUND_PRODUCT_MESSAGE);
-        }
-    }
 
     private void validateStock(Order order) {
         Product product = findProduct(order.getProductName());
@@ -48,17 +36,13 @@ public class Store {
         }
     }
 
-    public boolean hasProduct(String name) {
-        return stocks.containsKey(findProduct(name));
-    }
-
     public Product findProduct(String name) {
         for (Product product : stocks.keySet()) {
             if (product.getName().equals(name)) {
                 return product;
             }
         }
-        throw new IllegalArgumentException(ERROR_NOTFOUND_PRODUCT_MESSAGE);
+        throw new NotFoundException(ERROR_NOTFOUND_PRODUCT_MESSAGE);
     }
 
     public void reduceStock(Product product, int quantity) {
