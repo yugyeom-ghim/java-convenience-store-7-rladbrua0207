@@ -29,4 +29,8 @@ public class Product {
             throw new IllegalArgumentException(ERROR_PRODUCT_PRICE_NEGATIVE_OR_ZERO_MESSAGE);
         }
     }
+
+    public String getName() {
+        return name;
+    }
 }

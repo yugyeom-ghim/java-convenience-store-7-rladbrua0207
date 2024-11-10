@@ -25,4 +25,12 @@ public class Promotion {
         return (startDate.atStartOfDay().isBefore(now) || startDate.atStartOfDay().isEqual(now))
                 && endDate.plusDays(ONE).atStartOfDay().isAfter(now);
     }
+
+    public int getBuyCount() {
+        return buyCount;
+    }
+
+    public int getFreeCount() {
+        return freeCount;
+    }
 }
