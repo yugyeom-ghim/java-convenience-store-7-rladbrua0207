@@ -6,13 +6,44 @@ import java.util.List;
 
 public class InputView {
 
-    public static final String INPUT_PURCHASE_PRODUCTS_AND_QUANTITIES_MESSAGE =
+    private static final String INPUT_PURCHASE_PRODUCTS_AND_QUANTITIES_MESSAGE =
             "구매하실 상품명과 수량을 입력해 주세요. (예: [사이다-2],[감자칩-1])";
+    private static final String ERROR_FORMAT_MESSAGE = "[ERROR] 올바르지 않은 형식으로 입력했습니다. 다시 입력해 주세요.";
 
     private static final String DELIMITER_COMMA = ",";
+    private static final char OPEN_BRACKET = '[';
+    private static final char CLOSE_BRACKET = ']';
 
     public static List<String> inputPurchaseProductsAndQuantities() {
         System.out.println(INPUT_PURCHASE_PRODUCTS_AND_QUANTITIES_MESSAGE);
-        return Arrays.stream(Console.readLine().split(DELIMITER_COMMA)).toList();
+        String input = Console.readLine();
+        validatePurchaseFormat(input);
+        return parsePurchaseInput(input);
+    }
+
+    private static void validatePurchaseFormat(String input) {
+        if (input == null || input.isBlank()) {
+            throw new IllegalArgumentException(ERROR_FORMAT_MESSAGE);
+        }
+
+        String[] items = input.split(DELIMITER_COMMA);
+        for (String item : items) {
+            validatePurchaseItemBrackets(item.trim());
+        }
+    }
+
+    private static void validatePurchaseItemBrackets(String item) {
+        if (item.length() < 2 
+                || item.charAt(0) != OPEN_BRACKET 
+                || item.charAt(item.length() - 1) != CLOSE_BRACKET) {
+            throw new IllegalArgumentException(ERROR_FORMAT_MESSAGE);
+        }
+    }
+
+    private static List<String> parsePurchaseInput(String input) {
+        return Arrays.stream(input.split(DELIMITER_COMMA))
+                .map(String::trim)
+                .map(item -> item.substring(1, item.length() - 1))
+                .toList();
     }
 }
