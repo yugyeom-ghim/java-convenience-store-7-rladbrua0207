@@ -26,6 +26,10 @@ public class Promotion {
                 && endDate.plusDays(ONE).atStartOfDay().isAfter(now);
     }
 
+    public String getName() {
+        return name;
+    }
+
     public int getBuyCount() {
         return buyCount;
     }

@@ -1,6 +1,5 @@
 package store.model;
 
-import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -13,16 +12,46 @@ public class Store {
             "[ERROR] 재고 수량을 초과하여 구매할 수 없습니다. 다시 입력해 주세요.";
     public static final String ERROR_NOTFOUND_PRODUCT_MESSAGE = "[ERROR] 존재하지 않는 상품입니다. 다시 입력해 주세요.";
 
-    private final Map<Product, Stock> stocks = new LinkedHashMap<>();
-    private final Map<Product, PromotionStock> promotionStocks = new LinkedHashMap<>();
+    private final Map<Product, Stock> stocks;
+    private final Map<Product, PromotionStock> promotionStocks;
     private final PromotionStock defaultPromotionStock = new PromotionStock(null, 0, null);
 
-    public Store(Map<Product, Stock> stocks, Map<Product, PromotionStock> promotionStocks) throws IOException {
-        this.stocks.putAll(stocks);
-        this.promotionStocks.putAll(promotionStocks);
+    private final Map<Product, Integer> purchases = new LinkedHashMap<>();
+    private final Map<Product, Integer> free = new LinkedHashMap<>();
+    private final Map<Product, Integer> regularPriceProducts = new LinkedHashMap<>();
     private final Membership membership = new Membership();
+
+    private int price = 0;
+
+    public Store(Map<Product, Stock> stocks, Map<Product, PromotionStock> promotionStocks) {
+        this.stocks = stocks;
+        this.promotionStocks = promotionStocks;
     }
 
+    // 1. 상품 및 재고 조회
+    public Product findProduct(String name) {
+        for (Product product : stocks.keySet()) {
+            if (product.getName().equals(name)) {
+                return product;
+            }
+        }
+        for (Product product : promotionStocks.keySet()) {
+            if (product.getName().equals(name)) {
+                return product;
+            }
+        }
+        return null;
+    }
+
+    public Stock getStock(Product product) {
+        return stocks.get(product);
+    }
+
+    public PromotionStock getPromotionStock(Product product) {
+        return promotionStocks.getOrDefault(product, defaultPromotionStock);
+    }
+
+    // 2. 유효성 검증
     public void validatePurchase(Order order) {
         validateProduct(order);
         validateStocks(order);
@@ -47,24 +76,7 @@ public class Store {
         }
     }
 
-    public Product findProduct(String name) {
-        for (Product product : stocks.keySet()) {
-            if (product.getName().equals(name)) {
-                return product;
-            }
-        }
-        for (Product product : promotionStocks.keySet()) {
-            if (product.getName().equals(name)) {
-                return product;
-            }
-        }
-        return null;
-    }
-
-    public Stock getStock(Product product) {
-        return stocks.get(product);
-    }
-
+    // 3. 프로모션 계산
     public int calculateGetMoreFreeQuantity(Order order, LocalDateTime orderTime) {
         PromotionStock promotionStock = getValidPromotionStock(order, orderTime);
         if (promotionStock == null) {
@@ -83,10 +95,6 @@ public class Store {
         return promotionStock;
     }
 
-    public PromotionStock getPromotionStock(Product product) {
-        return promotionStocks.getOrDefault(product, defaultPromotionStock);
-    }
-
     private int calculateRequiredQuantity(Order order, PromotionStock promotionStock) {
         Promotion promotion = promotionStock.getPromotion();
         int totalCount = promotion.getBuyCount() + promotion.getFreeCount();
@@ -98,7 +106,7 @@ public class Store {
         return 0;
     }
 
-    public int calculateRegularPriceQuantity(Order order, LocalDateTime orderTime) {
+    public int calculateAdditionalRegularPriceQuantity(Order order, LocalDateTime orderTime) {
         Product product = findProduct(order.getProductName());
         PromotionStock promotionStock = getPromotionStock(product);
 
@@ -122,44 +130,20 @@ public class Store {
         return order.getQuantity() - availablePromotionQuantity;
     }
 
-    public void buyProduct(Order order, LocalDateTime orderTime) {
-        Product product = findProduct(order.getProductName());
-        PromotionStock promotionStock = getPromotionStock(product);
-        Stock stock = getStock(product);
-
-        if (isPromotionValid(promotionStock, orderTime)) {
-            applyPromotion(order, promotionStock, stock);
-            return;
+    private int calculatePromotionStockQuantity(
+            int orderQuantity, PromotionStock promotionStock, LocalDateTime orderTime
+    ) {
+        if (promotionStock == null || promotionStock.getPromotion() == null
+                || !promotionStock.getPromotion().isValidDate(orderTime)) {
+            return 0;
         }
-        stock.reduce(order.getQuantity());
-    }
-
-    private void applyPromotion(Order order, PromotionStock promotionStock, Stock stock) {
-        int totalPromotionQuantity = calculatePromotionStockQuantity(order.getQuantity(), promotionStock);
-
-        promotionStock.reduce(totalPromotionQuantity);
-        int remaining = order.getQuantity() - totalPromotionQuantity;
-        stock.reduce(remaining);
-    }
-
-    private int calculatePromotionStockQuantity(int orderQuantity, PromotionStock promotionStock) {
-        if (orderQuantity > promotionStock.getQuantity()) {
-            return promotionStock.getQuantity();
-        }
-        int promotionSets = calculatePromotionSets(orderQuantity, promotionStock.getPromotion());
-        int remaining = orderQuantity - promotionSets;
-
-        return promotionSets + remaining;
-    }
-
-    private int calculatePromotionSets(int quantity, Promotion promotion) {
-        int totalCountPerSet = promotion.getBuyCount() + promotion.getFreeCount();
-        int sets = quantity / totalCountPerSet;
-        return sets * totalCountPerSet;
+        return Math.min(orderQuantity, promotionStock.getQuantity());
     }
 
     private boolean isPromotionValid(PromotionStock promotionStock, LocalDateTime orderTime) {
-        return promotionStock.getQuantity() != 0 &&
+        return promotionStock != null &&
+                promotionStock.getPromotion() != null &&
+                promotionStock.getQuantity() != 0 &&
                 promotionStock.getPromotion().isValidDate(orderTime);
     }
 
@@ -167,6 +151,68 @@ public class Store {
         int totalCountPerSet = promotion.getBuyCount() + promotion.getFreeCount();
         int sets = quantity / totalCountPerSet;
         return sets * totalCountPerSet;
+    }
+
+    // 4. 구매 처리
+    public void purchaseProduct(Order order, LocalDateTime orderTime) {
+        Product product = findProduct(order.getProductName());
+        PromotionStock promotionStock = getPromotionStock(product);
+        Stock stock = getStock(product);
+
+        int promotionQuantity = calculatePromotionStockQuantity(order.getQuantity(), promotionStock, orderTime);
+        purchaseWithPromotion(order, product, promotionStock, promotionQuantity);
+        purchaseWithRegularPrice(order, product, stock, promotionQuantity);
+    }
+
+    private void purchaseWithPromotion(Order order, Product product, PromotionStock promotionStock,
+                                       int totalPromotionQuantity) {
+        promotionStock.reduce(totalPromotionQuantity);
+        recordPromotionPurchase(order, product, totalPromotionQuantity);
+    }
+
+    private void purchaseWithRegularPrice(Order order, Product product, Stock stock, int calculatedPromotionQuantity) {
+        int regularQuantity = order.getQuantity() - calculatedPromotionQuantity;
+        stock.reduce(regularQuantity);
+        calculateTotalPrice(order, regularQuantity);
+        recordPurchasedProduct(product, regularQuantity);
+        recordRegularPriceProduct(product, regularQuantity);
+    }
+
+    // 5. 구매 기록
+    private void recordPromotionPurchase(Order order, Product product, int totalPromotionQuantity) {
+        recordPurchasedProduct(product, totalPromotionQuantity);
+        calculateTotalPrice(order, totalPromotionQuantity);
+
+        Promotion promotion = getPromotionStock(product).getPromotion();
+        if (promotion != null) {
+            int freeCount = promotion.getFreeCount();
+            int sets = totalPromotionQuantity / (promotion.getBuyCount() + freeCount);
+            int freeQuantity = sets * freeCount;
+            recordFreeProduct(product, freeQuantity);
+        }
+    }
+
+    private void recordPurchasedProduct(Product product, int quantity) {
+        int currentQuantity = purchases.getOrDefault(product, 0);
+        purchases.put(product, currentQuantity + quantity);
+    }
+
+    private void recordFreeProduct(Product product, int quantity) {
+        int currentQuantity = free.getOrDefault(product, 0);
+        free.put(product, currentQuantity + quantity);
+    }
+
+    private void recordRegularPriceProduct(Product product, int quantity) {
+        int currentQuantity = regularPriceProducts.getOrDefault(product, 0);
+        regularPriceProducts.put(product, currentQuantity + quantity);
+    }
+
+    private void calculateTotalPrice(Order order, int quantity) {
+        Product product = findProduct(order.getProductName());
+        this.price += product.getPrice() * quantity;
+    }
+
+    // 6. 할인 계산
     public int calculateMembershipDiscount() {
         int regularPriceTotal = calculateRegularPriceTotal();
         return membership.discount(regularPriceTotal);
@@ -183,5 +229,33 @@ public class Store {
                 .mapToInt(product -> product.getPrice() * free.get(product))
                 .sum();
     }
+
+    // 7. 주문 관리
+    public void clearOrder() {
+        purchases.clear();
+        free.clear();
+        regularPriceProducts.clear();
+        price = 0;
+    }
+
+    // 8. Getter
+    public Map<Product, Integer> getPurchases() {
+        return new LinkedHashMap<>(purchases);
+    }
+
+    public Map<Product, Integer> getFreeProducts() {
+        return new LinkedHashMap<>(free);
+    }
+
+    public int getPrice() {
+        return price;
+    }
+
+    public Map<Product, Stock> getStocks() {
+        return stocks;
+    }
+
+    public Map<Product, PromotionStock> getPromotionStocks() {
+        return promotionStocks;
     }
 }

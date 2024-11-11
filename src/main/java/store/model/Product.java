@@ -1,5 +1,7 @@
 package store.model;
 
+import java.util.Objects;
+
 public class Product {
 
     private static final String ERROR_PRODUCT_NAME_BLACK_MESSAGE = "[ERROR] 상품명은 공백일 수 없습니다.";
@@ -7,8 +9,8 @@ public class Product {
 
     private static final int ZERO = 0;
 
-    private String name;
-    private int price;
+    private final String name;
+    private final int price;
 
     public Product(String name, int price) {
         validateName(name);
@@ -32,5 +34,26 @@ public class Product {
 
     public String getName() {
         return name;
+    }
+
+    public int getPrice() {
+        return price;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        Product product = (Product) o;
+        return Objects.equals(name, product.name);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(name);
     }
 }
