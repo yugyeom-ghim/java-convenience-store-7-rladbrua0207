@@ -16,6 +16,8 @@ public class InputView {
     private static final String INPUT_PURCHASE_INTENT_NOT_APPLY_PROMOTION_MESSAGE =
             "현재 %s %d개는 프로모션 할인이 적용되지 않습니다. 그래도 구매하시겠습니까? (Y/N)\n";
     private static final String INPUT_MEMBERSHIP_APPLY_MESSAGE = "멤버십 할인을 받으시겠습니까? (Y/N)";
+    private static final String INPUT_CONTINUE_PURCHASE_MESSAGE = 
+            "감사합니다. 구매하고 싶은 다른 상품이 있나요? (Y/N)";
 
     private static final String DELIMITER_COMMA = ",";
     private static final String DELIMITER_HYPHEN = "-";
@@ -49,6 +51,13 @@ public class InputView {
 
     public static boolean inputApplyMembershipIntent() {
         System.out.println(INPUT_MEMBERSHIP_APPLY_MESSAGE);
+        String input = Console.readLine();
+        validateYerOrNo(input);
+        return input.equals(YES);
+    }
+
+    public static boolean inputWantToContinuePurchase() {
+        System.out.println(INPUT_CONTINUE_PURCHASE_MESSAGE);
         String input = Console.readLine();
         validateYerOrNo(input);
         return input.equals(YES);
