@@ -4,11 +4,11 @@ import camp.nextstep.edu.missionutils.Console;
 import java.util.Arrays;
 import java.util.List;
 import org.graalvm.collections.Pair;
+import store.model.Answer;
 
 public class InputView {
 
     private static final String ERROR_FORMAT_MESSAGE = "[ERROR] 올바르지 않은 형식으로 입력했습니다. 다시 입력해 주세요.";
-    private static final String ERROR_INVALID_INPUT_MESSAGE = "[ERROR] 잘못된 입력입니다. 다시 입력해 주세요.";
     private static final String INPUT_PURCHASE_PRODUCTS_AND_QUANTITIES_MESSAGE =
             "구매하실 상품명과 수량을 입력해 주세요. (예: [사이다-2],[감자칩-1])";
     private static final String INPUT_RECEIVE_INTENT_ONE_MORE_FREE_MESSAGE =
@@ -21,8 +21,6 @@ public class InputView {
 
     private static final String DELIMITER_COMMA = ",";
     private static final String DELIMITER_HYPHEN = "-";
-    private static final String YES = "Y";
-    private static final String NO = "N";
     private static final char OPEN_BRACKET = '[';
     private static final char CLOSE_BRACKET = ']';
     private static final int PRODUCT_INDEX = 0;
@@ -37,36 +35,22 @@ public class InputView {
 
     public static boolean inputWantToReceiveOneMoreFree(String productName) {
         System.out.printf(INPUT_RECEIVE_INTENT_ONE_MORE_FREE_MESSAGE, productName);
-        String input = Console.readLine();
-        validateYerOrNo(input);
-        return input.equals(YES);
+        return Answer.from(Console.readLine()).isYes();
     }
 
     public static boolean inputWantToPurchaseNotApplyPromotion(String productName, int quantity) {
         System.out.printf((INPUT_PURCHASE_INTENT_NOT_APPLY_PROMOTION_MESSAGE), productName, quantity);
-        String input = Console.readLine();
-        validateYerOrNo(input);
-        return input.equals(YES);
+        return Answer.from(Console.readLine()).isYes();
     }
 
     public static boolean inputApplyMembershipIntent() {
         System.out.println(INPUT_MEMBERSHIP_APPLY_MESSAGE);
-        String input = Console.readLine();
-        validateYerOrNo(input);
-        return input.equals(YES);
+        return Answer.from(Console.readLine()).isYes();
     }
 
     public static boolean inputWantToContinuePurchase() {
         System.out.println(INPUT_CONTINUE_PURCHASE_MESSAGE);
-        String input = Console.readLine();
-        validateYerOrNo(input);
-        return input.equals(YES);
-    }
-
-    private static void validateYerOrNo(String input) {
-        if (!(input.equals(YES) || input.equals(NO))) {
-            throw new IllegalArgumentException(ERROR_INVALID_INPUT_MESSAGE);
-        }
+        return Answer.from(Console.readLine()).isYes();
     }
 
     private static void validatePurchaseFormat(String input) {
