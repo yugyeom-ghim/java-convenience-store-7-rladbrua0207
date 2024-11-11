@@ -19,6 +19,7 @@ class PromotionTest {
         LocalDate endDate = LocalDate.of(2024, 11, 12);
 
         Promotion promotion = new Promotion(promotionName, buyCount, freeCount, startDate, endDate);
+
         // when & then
         Assertions.assertThat(promotion.isValidDate(LocalDateTime.parse(localDateTime))).isTrue();
     }
@@ -34,6 +35,7 @@ class PromotionTest {
         LocalDate endDate = LocalDate.of(2024, 11, 12);
 
         Promotion promotion = new Promotion(promotionName, buyCount, freeCount, startDate, endDate);
+
         // when & then
         Assertions.assertThat(promotion.isValidDate(LocalDateTime.parse(localDateTime))).isFalse();
     }
