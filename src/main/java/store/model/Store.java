@@ -20,6 +20,7 @@ public class Store {
     public Store(Map<Product, Stock> stocks, Map<Product, PromotionStock> promotionStocks) throws IOException {
         this.stocks.putAll(stocks);
         this.promotionStocks.putAll(promotionStocks);
+    private final Membership membership = new Membership();
     }
 
     public void validatePurchase(Order order) {
@@ -166,5 +167,21 @@ public class Store {
         int totalCountPerSet = promotion.getBuyCount() + promotion.getFreeCount();
         int sets = quantity / totalCountPerSet;
         return sets * totalCountPerSet;
+    public int calculateMembershipDiscount() {
+        int regularPriceTotal = calculateRegularPriceTotal();
+        return membership.discount(regularPriceTotal);
+    }
+
+    private int calculateRegularPriceTotal() {
+        return regularPriceProducts.entrySet().stream()
+                .mapToInt(entry -> entry.getKey().getPrice() * entry.getValue())
+                .sum();
+    }
+
+    public int getPromotionDiscount() {
+        return free.keySet().stream()
+                .mapToInt(product -> product.getPrice() * free.get(product))
+                .sum();
+    }
     }
 }
