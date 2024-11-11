@@ -17,6 +17,7 @@ public class ProductInitializer {
 
     private static final String PRODUCTS_RESOURCES_FILE_NAME = "products.md";
     private static final String DELIMITER_COMMA = ",";
+    private static final int INITIAL_QUANTITY = 0;
     private static final int NAME_INDEX = 0;
     private static final int PRICE_INDEX = 1;
     private static final int QUANTITY_INDEX = 2;
@@ -26,9 +27,7 @@ public class ProductInitializer {
     private final Map<Product, PromotionStock> promotionStocks = new LinkedHashMap<>();
     private final Map<String, Promotion> promotionMap;
 
-    public ProductInitializer(
-            Map<String, Promotion> promotionMap
-    ) throws IOException {
+    public ProductInitializer(Map<String, Promotion> promotionMap) throws IOException {
         this.promotionMap = promotionMap;
         initProducts();
     }
@@ -60,32 +59,37 @@ public class ProductInitializer {
 
     private void createProduct(String line) {
         List<String> options = Arrays.stream(line.split(DELIMITER_COMMA)).toList();
-        Product product = new Product(
-                options.get(NAME_INDEX),
-                Integer.parseInt(options.get(PRICE_INDEX))
-        );
-        
+        Product product = createProductFromOptions(options);
         int quantity = Integer.parseInt(options.get(QUANTITY_INDEX));
-        Promotion promotion = promotionMap.get(options.get(PROMOTION_INDEX));
-        addToStock(product, quantity, promotion);
+        saveProductStock(product, findPromotion(options), quantity);
     }
 
-    private void addToStock(Product product, int quantity, Promotion promotion) {
-        if (promotion == null) {
-            stocks.put(product, new Stock(product, quantity));
+    private Product createProductFromOptions(List<String> options) {
+        String name = options.get(NAME_INDEX);
+        int price = Integer.parseInt(options.get(PRICE_INDEX));
+        return new Product(name, price);
+    }
+
+    private Promotion findPromotion(List<String> options) {
+        return promotionMap.get(options.get(PROMOTION_INDEX));
+    }
+
+    private void saveProductStock(Product product, Promotion promotion, int quantity) {
+        if (promotion != null) {
+            promotionStocks.put(product, new PromotionStock(product, quantity, promotion));
+            if (!stocks.containsKey(product)) {
+                stocks.put(product, new Stock(product, INITIAL_QUANTITY));
+            }
             return;
         }
-        promotionStocks.put(
-                product, 
-                new PromotionStock(product, quantity, promotion)
-        );
+        stocks.put(product, new Stock(product, quantity));
     }
 
     public Map<Product, Stock> getStocks() {
-        return new LinkedHashMap<>(stocks);
+        return stocks;
     }
 
     public Map<Product, PromotionStock> getPromotionStocks() {
-        return new LinkedHashMap<>(promotionStocks);
+        return promotionStocks;
     }
 }
