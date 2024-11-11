@@ -26,7 +26,7 @@ public class InputView {
     private static final int PRODUCT_INDEX = 0;
     private static final int QUANTITY_INDEX = 1;
 
-    public static List<Pair<String, String>> inputPurchaseProductsAndQuantities() {
+    public static List<Pair<String, Integer>> inputPurchaseProductsAndQuantities() {
         System.out.println(INPUT_PURCHASE_PRODUCTS_AND_QUANTITIES_MESSAGE);
         String input = Console.readLine();
         validatePurchaseFormat(input);
@@ -77,14 +77,14 @@ public class InputView {
         }
     }
 
-    private static List<Pair<String, String>> parsePurchaseInput(String input) {
+    private static List<Pair<String, Integer>> parsePurchaseInput(String input) {
         return Arrays.stream(input.split(DELIMITER_COMMA))
                 .map(String::trim)
                 .map(item -> item.substring(1, item.length() - 1))
                 .map(item -> {
                     List<String> productAndQuantity = Arrays.stream(item.split(DELIMITER_HYPHEN)).toList();
                     String product = productAndQuantity.get(PRODUCT_INDEX);
-                    String quantity = productAndQuantity.get(QUANTITY_INDEX);
+                    Integer quantity = Integer.parseInt(productAndQuantity.get(QUANTITY_INDEX));
                     return Pair.create(product, quantity);
                 })
                 .toList();
